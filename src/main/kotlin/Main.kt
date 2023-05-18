@@ -13,10 +13,8 @@ data class Product(val name: String, val price: String)
 
 fun main() {
 
-    val options = ChromeOptions()
-    options.addArguments("--headless")
-    val driver = ChromeDriver(options)
-    val urls = listOf<String>(
+    val driver = getChromeDriver()
+    val urls = listOf(
         "https://www.coop.ch/fr/nourriture/viandes-poissons/viande-de-la-boucherie/c/m_2333?pageSize=100",
         "https://www.coop.ch/fr/nourriture/viandes-poissons/poisson-de-la-poissonnerie/c/m_1893?pageSize=100",
         "https://www.coop.ch/fr/nourriture/viandes-poissons/viandes-fraiches-emballees/c/m_0088?pageSize=300",
@@ -32,13 +30,25 @@ fun main() {
 
     val file = getRecordFile()
 
+    run(urls, driver, file)
 
+}
+
+fun getChromeDriver(): ChromeDriver {
+    val options = ChromeOptions()
+    options.addArguments("--headless")
+    val driver = ChromeDriver(options)
+    return driver
+}
+
+private fun run(
+    urls: List<String>,
+    driver: ChromeDriver,
+    file: File
+) {
     try {
 
-        val products = mutableListOf<Product>()
-        for (url in urls) {
-            products.addAll(driver.getProductsFromUrl(url))
-        }
+        val products = extractInformationFromURLs(urls, driver)
 
         val jsonString = Json.encodeToString(products)
         writeToFile(file, jsonString)
@@ -46,7 +56,19 @@ fun main() {
     } finally {
         driver.quit()
     }
+}
 
+fun extractInformationFromURLs(
+    urls: List<String>,
+    driver: ChromeDriver
+): MutableList<Product> {
+    val products = mutableListOf<Product>()
+    for (url in urls) {
+        val productsBatch = driver.getProductsFromUrl(url)
+        println("${productsBatch.size} products scraped from $url")
+        products.addAll(productsBatch)
+    }
+    return products
 }
 
 private fun getRecordFile(): File {
