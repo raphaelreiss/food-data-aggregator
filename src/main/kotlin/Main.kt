@@ -1,3 +1,5 @@
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -7,11 +9,12 @@ import org.openqa.selenium.chrome.ChromeOptions
 import java.io.File
 import java.io.IOException
 import java.time.LocalDate
+import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class Product(val name: String, val price: String)
 
-fun main() {
+suspend fun main() {
 
     val driver = getChromeDriver()
     val urls = listOf(
@@ -61,14 +64,18 @@ private fun run(
 fun extractInformationFromURLs(
     urls: List<String>,
     driver: ChromeDriver
-): MutableList<Product> {
+): MutableList<Product> = runBlocking {
     val products = mutableListOf<Product>()
-    for (url in urls) {
-        val productsBatch = driver.getProductsFromUrl(url)
-        println("${productsBatch.size} products scraped from $url")
-        products.addAll(productsBatch)
+    urls.map { endpoint ->
+        launch {
+            println("Start scraping $endpoint")
+            val productsBatch = driver.getProductsFromUrl(endpoint)
+            println("${productsBatch.size} products scraped from $endpoint")
+            products.addAll(productsBatch)
+        }
     }
-    return products
+
+    return@runBlocking products
 }
 
 private fun getRecordFile(): File {
@@ -99,7 +106,7 @@ fun createFolder(todayFolder: File) {
     println(message)
 }
 
-fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
+suspend fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
     get(url)
     val productsNames = findElements(By.className("productTile-details__name-value"))
     val productsPrices = findElements(By.className("productTile__price-value-lead-price"))
@@ -107,5 +114,5 @@ fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
         .map {
             Product(it.first.text, it.second.text)
         }
-    return products
+    return suspendCoroutine { products }
 }
