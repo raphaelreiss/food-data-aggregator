@@ -16,7 +16,7 @@ data class Product(val name: String, val price: String)
 
 suspend fun main() {
 
-    val driver = getChromeDriver()
+    val drivers = getChromeDriver()
     val urls = listOf(
         "https://www.coop.ch/fr/nourriture/viandes-poissons/viande-de-la-boucherie/c/m_2333?pageSize=100",
         "https://www.coop.ch/fr/nourriture/viandes-poissons/poisson-de-la-poissonnerie/c/m_1893?pageSize=100",
@@ -33,48 +33,51 @@ suspend fun main() {
 
     val file = getRecordFile()
 
-    run(urls, driver, file)
+    run(urls, drivers, file)
 
 }
 
-fun getChromeDriver(): ChromeDriver {
+fun getChromeDriver(): List<ChromeDriver> {
     val options = ChromeOptions()
     options.addArguments("--headless")
-    val driver = ChromeDriver(options)
-    return driver
+
+    return listOf(ChromeDriver(options), ChromeDriver(options))
 }
 
 private fun run(
     urls: List<String>,
-    driver: ChromeDriver,
+    drivers: List<ChromeDriver>,
     file: File
 ) {
     try {
 
-        val products = extractInformationFromURLs(urls, driver)
-
+        val products = extractInformationFromURLs(urls, drivers)
         val jsonString = Json.encodeToString(products)
         writeToFile(file, jsonString)
 
     } finally {
-        driver.quit()
+        drivers.forEach { driver -> driver.quit() }
     }
 }
 
 fun extractInformationFromURLs(
     urls: List<String>,
-    driver: ChromeDriver
+    drivers: List<ChromeDriver>
 ): MutableList<Product> = runBlocking {
-    val products = mutableListOf<Product>()
-    urls.map { endpoint ->
-        launch {
-            println("Start scraping $endpoint")
-            val productsBatch = driver.getProductsFromUrl(endpoint)
-            println("${productsBatch.size} products scraped from $endpoint")
-            products.addAll(productsBatch)
-        }
-    }
 
+    val products = mutableListOf<Product>()
+    urls.chunked(drivers.size)
+        .withIndex()
+        .forEach { (idx, urls) ->
+            urls.forEach { endpoint ->
+                launch {
+                    println("Start scraping $endpoint")
+                    val productsBatch = drivers[idx].getProductsFromUrl(endpoint)
+                    println("${productsBatch.size} products scraped from $endpoint")
+                    products.addAll(productsBatch)
+                }
+            }
+        }
     return@runBlocking products
 }
 
