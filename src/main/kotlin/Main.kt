@@ -1,4 +1,3 @@
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.openqa.selenium.By
@@ -8,8 +7,6 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
-@Serializable
-data class Product(val name: String, val price: String)
 
 fun main() {
 
@@ -98,11 +95,20 @@ fun createFolder(todayFolder: File) {
 
 fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
     get(url)
-    val productsNames = findElements(By.className("productTile-details__name-value"))
-    val productsPrices = findElements(By.className("productTile__price-value-lead-price"))
-    val products = productsNames.zip(productsPrices)
-        .map {
-            Product(it.first.text, it.second.text)
+    return findElement(By.xpath("//ul[@class='list-page__content row']"))
+        .findElements(By.xpath("//li[@class='list-page__item col-12 col-sm-6 col-lg-4 col-xl-3 ']"))
+        .map { element ->
+            val productRaw = element.findElement(By.tagName("a"))
+            val id = productRaw.getAttribute("id")
+                ?: error("Product index cannot be null. See the error on the element: ${productRaw.text}")
+            val url = productRaw.getAttribute("href")
+                ?: error("Product url cannot be null. See the error on the element: ${productRaw.text}")
+            val name = productRaw.findElement(By.xpath("//p[@class='productTile-details__name-value']")).text ?: ""
+            val price = productRaw.findElement(By.xpath("//p[@class='productTile__price-value-lead-price']")).text ?: ""
+            val pricePerWeight =
+                productRaw.findElement(By.xpath("//div[@class='productTile__price-value-per-weight-text inline']")).text
+                    ?: ""
+            val quantity = productRaw.findElement(By.xpath("//span[@class='productTile__quantity-text']")).text ?: ""
+            Product(id, url, name, price, pricePerWeight, quantity)
         }
-    return products
 }

@@ -1,7 +1,29 @@
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.openqa.selenium.By
+import kotlin.test.assertNotEquals
 
 class MainKtTest {
+
+    @Test
+    fun restructureGetProducts() {
+
+        val driver = getChromeDriver()
+        val url = "https://www.coop.ch/fr/nourriture/pains-viennoiseries/pain-de-la-boulangerie/c/m_0119?pageSize=2"
+
+        val products = driver.getProductsFromUrl(url)
+
+        val prod1 = products[0]
+        val prod2 = products[1]
+
+        assertNotEquals(prod1.id, prod2.id)
+        assertNotEquals(prod1.url, prod2.url)
+        assertNotEquals(prod1.name, prod2.name)
+        assertNotEquals(prod1.price, prod2.price)
+        assertNotEquals(prod1.pricePerWeight, prod2.pricePerWeight)
+        assertNotEquals(prod1.quantity, prod2.quantity)
+
+    }
 
     @Test
     fun extractInformationFromURLsTest() {
@@ -26,10 +48,9 @@ class MainKtTest {
 
         assertEquals(urls.size, products.size)
         products.forEach {
-            assert(!it.name.isEmpty())
-            assert(!it.price.isEmpty())
+            assert(it.name.isNotEmpty())
+            assert(it.price.isNotEmpty())
         }
-
 
 
     }
