@@ -7,7 +7,6 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
-const val listOfProductsXPATH = "//ul[@class='list-page__content row']"
 const val elementXPATH = "//li[@class='list-page__item col-12 col-sm-6 col-lg-4 col-xl-3 ']"
 const val nameXPATH = "//p[@class='productTile-details__name-value']"
 const val priceXPATH = "//p[@class='productTile__price-value-lead-price']"
@@ -102,8 +101,7 @@ fun createFolder(todayFolder: File) {
 
 fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
     get(url)
-    return findElement(By.xpath(listOfProductsXPATH))
-        .findElements(By.xpath(elementXPATH))
+    return findElements(By.xpath(elementXPATH))
         .withIndex()
         .map { (idx, element) ->
             val productRaw = element.findElement(By.tagName("a"))
