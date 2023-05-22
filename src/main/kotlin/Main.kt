@@ -7,6 +7,13 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
+const val listOfProductsXPATH = "//ul[@class='list-page__content row']"
+const val elementXPATH = "//li[@class='list-page__item col-12 col-sm-6 col-lg-4 col-xl-3 ']"
+const val nameXPATH = "//p[@class='productTile-details__name-value']"
+const val priceXPATH = "//p[@class='productTile__price-value-lead-price']"
+const val pricePerWeightXPATH = "//div[@class='productTile__price-value-per-weight-text inline']"
+const val quantityXPATH = "//span[@class='productTile__quantity-text']"
+
 
 fun main() {
 
@@ -95,20 +102,24 @@ fun createFolder(todayFolder: File) {
 
 fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
     get(url)
-    return findElement(By.xpath("//ul[@class='list-page__content row']"))
-        .findElements(By.xpath("//li[@class='list-page__item col-12 col-sm-6 col-lg-4 col-xl-3 ']"))
-        .map { element ->
+    return findElement(By.xpath(listOfProductsXPATH))
+        .findElements(By.xpath(elementXPATH))
+        .withIndex()
+        .map { (idx, element) ->
             val productRaw = element.findElement(By.tagName("a"))
             val id = productRaw.getAttribute("id")
                 ?: error("Product index cannot be null. See the error on the element: ${productRaw.text}")
-            val url = productRaw.getAttribute("href")
+            val productUrl = productRaw.getAttribute("href")
                 ?: error("Product url cannot be null. See the error on the element: ${productRaw.text}")
-            val name = productRaw.findElement(By.xpath("//p[@class='productTile-details__name-value']")).text ?: ""
-            val price = productRaw.findElement(By.xpath("//p[@class='productTile__price-value-lead-price']")).text ?: ""
+            val name =
+                productRaw.findElements(By.xpath(nameXPATH))[idx].text ?: ""
+            val price =
+                productRaw.findElements(By.xpath(priceXPATH))[idx].text ?: ""
             val pricePerWeight =
-                productRaw.findElement(By.xpath("//div[@class='productTile__price-value-per-weight-text inline']")).text
+                productRaw.findElements(By.xpath(pricePerWeightXPATH))[idx].text
                     ?: ""
-            val quantity = productRaw.findElement(By.xpath("//span[@class='productTile__quantity-text']")).text ?: ""
-            Product(id, url, name, price, pricePerWeight, quantity)
+            val quantity =
+                productRaw.findElements(By.xpath(quantityXPATH))[idx].text ?: ""
+            Product(id, productUrl, name, price, pricePerWeight, quantity)
         }
 }
