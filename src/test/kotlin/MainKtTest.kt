@@ -46,12 +46,10 @@ class MainKtTest {
         val driver = getChromeDriver()
         val products = extractInformationFromURLs(urls, driver)
 
-        assertEquals(urls.size, products.size)
+        assertEquals(urls.size * pageSize, products.size)
         products.forEach {
             assert(it.name.isNotEmpty())
             assert(it.price.isNotEmpty())
         }
-
-
     }
 }

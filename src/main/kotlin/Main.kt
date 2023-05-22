@@ -7,7 +7,7 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
-const val elementXPATH = "//li[@class='list-page__item col-12 col-sm-6 col-lg-4 col-xl-3 ']"
+const val elementXPATH = "//div[@class='productTile__wrapper productTile__wrapper--noEqualHeights ']"
 const val nameXPATH = "//p[@class='productTile-details__name-value']"
 const val priceXPATH = "//p[@class='productTile__price-value-lead-price']"
 const val pricePerWeightXPATH = "//div[@class='productTile__price-value-per-weight-text inline']"
