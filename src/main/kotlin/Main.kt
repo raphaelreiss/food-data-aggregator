@@ -1,4 +1,3 @@
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.openqa.selenium.By
@@ -8,15 +7,17 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 
-@Serializable
-data class Product(val name: String, val price: String)
+const val elementXPATH = "//div[@class='productTile__wrapper productTile__wrapper--noEqualHeights ']"
+const val nameXPATH = "//p[@class='productTile-details__name-value']"
+const val priceXPATH = "//p[@class='productTile__price-value-lead-price']"
+const val pricePerWeightXPATH = "//div[@class='productTile__price-value-per-weight-text inline']"
+const val quantityXPATH = "//span[@class='productTile__quantity-text']"
+
 
 fun main() {
 
-    val options = ChromeOptions()
-    options.addArguments("--headless")
-    val driver = ChromeDriver(options)
-    val urls = listOf<String>(
+    val driver = getChromeDriver()
+    val urls = listOf(
         "https://www.coop.ch/fr/nourriture/viandes-poissons/viande-de-la-boucherie/c/m_2333?pageSize=100",
         "https://www.coop.ch/fr/nourriture/viandes-poissons/poisson-de-la-poissonnerie/c/m_1893?pageSize=100",
         "https://www.coop.ch/fr/nourriture/viandes-poissons/viandes-fraiches-emballees/c/m_0088?pageSize=300",
@@ -31,22 +32,43 @@ fun main() {
     )
 
     val file = getRecordFile()
+    run(urls, driver, file)
 
+}
 
+fun getChromeDriver(): ChromeDriver {
+    val options = ChromeOptions()
+    options.addArguments("--headless")
+    return ChromeDriver(options)
+}
+
+private fun run(
+    urls: List<String>,
+    driver: ChromeDriver,
+    file: File
+) {
     try {
 
-        val products = mutableListOf<Product>()
-        for (url in urls) {
-            products.addAll(driver.getProductsFromUrl(url))
-        }
-
+        val products = extractInformationFromURLs(urls, driver)
         val jsonString = Json.encodeToString(products)
         writeToFile(file, jsonString)
 
     } finally {
         driver.quit()
     }
+}
 
+fun extractInformationFromURLs(
+    urls: List<String>,
+    driver: ChromeDriver
+): MutableList<Product> {
+    val products = mutableListOf<Product>()
+    for (url in urls) {
+        val productsBatch = driver.getProductsFromUrl(url)
+        println("${productsBatch.size} products scraped from $url")
+        products.addAll(productsBatch)
+    }
+    return products
 }
 
 private fun getRecordFile(): File {
@@ -79,11 +101,23 @@ fun createFolder(todayFolder: File) {
 
 fun ChromeDriver.getProductsFromUrl(url: String): List<Product> {
     get(url)
-    val productsNames = findElements(By.className("productTile-details__name-value"))
-    val productsPrices = findElements(By.className("productTile__price-value-lead-price"))
-    val products = productsNames.zip(productsPrices)
-        .map {
-            Product(it.first.text, it.second.text)
+    return findElements(By.xpath(elementXPATH))
+        .withIndex()
+        .map { (idx, element) ->
+            val productRaw = element.findElement(By.tagName("a"))
+            val id = productRaw.getAttribute("id")
+                ?: error("Product index cannot be null. See the error on the element: ${productRaw.text}")
+            val productUrl = productRaw.getAttribute("href")
+                ?: error("Product url cannot be null. See the error on the element: ${productRaw.text}")
+            val name =
+                productRaw.findElements(By.xpath(nameXPATH))[idx].text ?: ""
+            val price =
+                productRaw.findElements(By.xpath(priceXPATH))[idx].text ?: ""
+            val pricePerWeight =
+                productRaw.findElements(By.xpath(pricePerWeightXPATH))[idx].text
+                    ?: ""
+            val quantity =
+                productRaw.findElements(By.xpath(quantityXPATH))[idx].text ?: ""
+            Product(id, productUrl, name, price, pricePerWeight, quantity)
         }
-    return products
 }
