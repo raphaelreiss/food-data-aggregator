@@ -14,6 +14,8 @@ repositories {
 dependencies {
     implementation("org.seleniumhq.selenium:selenium-java:4.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+    implementation("com.google.cloud:google-cloud-bigquery:2.23.2")
     testImplementation(kotlin("test"))
 }
 
